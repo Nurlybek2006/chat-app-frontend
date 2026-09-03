@@ -4,6 +4,7 @@ function Sidebar({
   onSelectChat,
   user,
   onLogout,
+  userStatuses,
 }) {
   return (
     <aside className="sidebar">
@@ -32,13 +33,27 @@ function Sidebar({
           </p>
         ) : (
           chats.map((chat) => {
-            const otherMember = chat.members?.find(
-              (member) => member.userId !== user?.id,
-            );
+            const otherMember =
+              chat.members?.find(
+                (member) =>
+                  member.userId !== user?.id,
+              );
 
             const chatName = chat.isGroup
               ? chat.name
-              : otherMember?.user?.username || "Private chat";
+              : otherMember?.user?.username ||
+                "Private chat";
+
+            const liveStatus =
+              otherMember &&
+              userStatuses?.[
+                otherMember.userId
+              ];
+
+            const status =
+              liveStatus?.status ||
+              otherMember?.user?.status ||
+              "OFFLINE";
 
             return (
               <button
@@ -48,21 +63,37 @@ function Sidebar({
                     ? "active"
                     : ""
                 }`}
-                onClick={() => onSelectChat(chat)}
+                onClick={() =>
+                  onSelectChat(chat)
+                }
               >
-                <div className="chat-avatar">
-                  {chatName
-                    ?.charAt(0)
-                    .toUpperCase()}
+                <div className="chat-avatar-wrapper">
+                  <div className="chat-avatar">
+                    {chatName
+                      ?.charAt(0)
+                      .toUpperCase()}
+                  </div>
+
+                  {!chat.isGroup && (
+                    <span
+                      className={`status-dot sidebar-status ${
+                        status === "ONLINE"
+                          ? "online"
+                          : "offline"
+                      }`}
+                    />
+                  )}
                 </div>
 
                 <div className="chat-info">
-                  <strong>{chatName}</strong>
+                  <strong>
+                    {chatName}
+                  </strong>
 
                   <span>
                     {chat.isGroup
                       ? "Group"
-                      : "Private"}
+                      : status}
                   </span>
                 </div>
               </button>

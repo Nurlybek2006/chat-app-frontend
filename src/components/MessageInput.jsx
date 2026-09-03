@@ -6,6 +6,7 @@ import {
 
 function MessageInput({
   onSend,
+  onSendFile,
   disabled,
   onTypingStart,
   onTypingStop,
@@ -22,15 +23,16 @@ function MessageInput({
   const isTypingRef =
     useRef(false);
 
+  const fileInputRef =
+    useRef(null);
+
   const handleChange = (event) => {
     const value = event.target.value;
 
     setContent(value);
 
     if (!value.trim()) {
-      if (
-        typingTimeoutRef.current
-      ) {
+      if (typingTimeoutRef.current) {
         clearTimeout(
           typingTimeoutRef.current,
         );
@@ -51,9 +53,7 @@ function MessageInput({
       onTypingStart?.();
     }
 
-    if (
-      typingTimeoutRef.current
-    ) {
+    if (typingTimeoutRef.current) {
       clearTimeout(
         typingTimeoutRef.current,
       );
@@ -61,9 +61,7 @@ function MessageInput({
 
     typingTimeoutRef.current =
       setTimeout(() => {
-        if (
-          isTypingRef.current
-        ) {
+        if (isTypingRef.current) {
           isTypingRef.current =
             false;
 
@@ -91,24 +89,19 @@ function MessageInput({
     try {
       setSending(true);
 
-      if (
-        typingTimeoutRef.current
-      ) {
+      if (typingTimeoutRef.current) {
         clearTimeout(
           typingTimeoutRef.current,
         );
       }
 
       if (isTypingRef.current) {
-        isTypingRef.current =
-          false;
+        isTypingRef.current = false;
 
         onTypingStop?.();
       }
 
-      await onSend(
-        trimmedContent,
-      );
+      await onSend(trimmedContent);
 
       setContent("");
     } finally {
@@ -116,11 +109,38 @@ function MessageInput({
     }
   };
 
+  const handleFileButtonClick = () => {
+    if (disabled || sending) {
+      return;
+    }
+
+    fileInputRef.current?.click();
+  };
+
+  const handleFileChange = async (
+    event,
+  ) => {
+    const file =
+      event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    try {
+      setSending(true);
+
+      await onSendFile?.(file);
+    } finally {
+      setSending(false);
+
+      event.target.value = "";
+    }
+  };
+
   useEffect(() => {
     return () => {
-      if (
-        typingTimeoutRef.current
-      ) {
+      if (typingTimeoutRef.current) {
         clearTimeout(
           typingTimeoutRef.current,
         );
@@ -133,6 +153,26 @@ function MessageInput({
       className="message-input-container"
       onSubmit={handleSubmit}
     >
+      <input
+        ref={fileInputRef}
+        type="file"
+        hidden
+        onChange={handleFileChange}
+      />
+
+      <button
+        type="button"
+        className="file-button"
+        onClick={
+          handleFileButtonClick
+        }
+        disabled={
+          disabled || sending
+        }
+      >
+        📎
+      </button>
+
       <input
         type="text"
         placeholder="Type a message..."

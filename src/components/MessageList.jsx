@@ -7,6 +7,9 @@ function MessageList({
   messages,
   user,
 }) {
+
+  console.log("MESSAGES:", messages);
+  
   const bottomRef = useRef(null);
 
   useEffect(() => {

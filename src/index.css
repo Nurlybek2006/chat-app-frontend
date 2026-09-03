@@ -354,3 +354,58 @@ input {
   font-style: italic;
   background: #111827;
 }
+
+.chat-avatar-wrapper,
+.chat-header-avatar-wrapper {
+  position: relative;
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+}
+
+.status-dot {
+  position: absolute;
+  right: -1px;
+  bottom: -1px;
+
+  width: 12px;
+  height: 12px;
+
+  border-radius: 50%;
+  border: 2px solid #1f2937;
+}
+
+.status-dot.online {
+  background: #22c55e;
+}
+
+.status-dot.offline {
+  background: #6b7280;
+}
+
+.sidebar-status {
+  border-color: #1f2937;
+}
+
+.file-button {
+  width: 42px;
+  height: 42px;
+
+  border: none;
+  border-radius: 8px;
+
+  cursor: pointer;
+
+  font-size: 20px;
+
+  background: #374151;
+}
+
+.file-button:hover {
+  background: #4b5563;
+}
+
+.file-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}

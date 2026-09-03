@@ -8,10 +8,7 @@ import ChatHeader from "../components/ChatHeader";
 import MessageList from "../components/MessageList";
 import MessageInput from "../components/MessageInput";
 
-import {
-  connectSocket,
-  getSocket,
-} from "../socket/socket";
+import { connectSocket, getSocket } from "../socket/socket";
 
 function Chat() {
   const { user, logout } = useAuth();
@@ -27,6 +24,8 @@ function Chat() {
   const [error, setError] = useState("");
 
   const [typingUsers, setTypingUsers] = useState([]);
+
+  const [userStatuses, setUserStatuses] = useState({});
 
   const selectedChatRef = useRef(null);
 
@@ -49,12 +48,30 @@ function Chat() {
 
         const response = await api.get("/chats");
 
-        setChats(response.data.chats || []);
+        const loadedChats = response.data.chats || [];
+
+        setChats(loadedChats);
+
+        // Backend-тен келген бастапқы status-тарды
+        // userStatuses ішіне сақтаймыз.
+        const initialStatuses = {};
+
+        loadedChats.forEach((chat) => {
+          chat.members?.forEach((member) => {
+            if (!member.user?.id) {
+              return;
+            }
+
+            initialStatuses[member.user.id] = {
+              status: member.user.status || "OFFLINE",
+              lastSeen: member.user.lastSeen || null,
+            };
+          });
+        });
+
+        setUserStatuses(initialStatuses);
       } catch (error) {
-        setError(
-          error.response?.data?.error ||
-            "Failed to load chats",
-        );
+        setError(error.response?.data?.error || "Failed to load chats");
       } finally {
         setLoading(false);
       }
@@ -74,36 +91,29 @@ function Chat() {
       return;
     }
 
-    // NEW MESSAGE
+    // --------------------------------
+    // New message
+    // --------------------------------
+
     const handleNewMessage = (payload) => {
       console.log("new-message received:", payload);
 
-      const message =
-        payload?.message || payload;
+      const message = payload?.message || payload;
 
       if (!message?.id) {
-        console.warn(
-          "Invalid new-message payload:",
-          payload,
-        );
+        console.warn("Invalid new-message payload:", payload);
 
         return;
       }
 
-      const currentChat =
-        selectedChatRef.current;
+      const currentChat = selectedChatRef.current;
 
-      if (
-        !currentChat ||
-        message.chatId !== currentChat.id
-      ) {
+      if (!currentChat || message.chatId !== currentChat.id) {
         return;
       }
 
       setMessages((prev) => {
-        const alreadyExists = prev.some(
-          (item) => item.id === message.id,
-        );
+        const alreadyExists = prev.some((item) => item.id === message.id);
 
         if (alreadyExists) {
           return prev;
@@ -113,18 +123,14 @@ function Chat() {
       });
     };
 
-    // TYPING START
-    const handleTypingStart = ({
-      chatId,
-      userId,
-    }) => {
-      const currentChat =
-        selectedChatRef.current;
+    // --------------------------------
+    // Typing start
+    // --------------------------------
 
-      if (
-        !currentChat ||
-        chatId !== currentChat.id
-      ) {
+    const handleTypingStart = ({ chatId, userId }) => {
+      const currentChat = selectedChatRef.current;
+
+      if (!currentChat || chatId !== currentChat.id) {
         return;
       }
 
@@ -141,76 +147,94 @@ function Chat() {
       });
     };
 
-    // TYPING STOP
-    const handleTypingStop = ({
-      chatId,
-      userId,
-    }) => {
-      const currentChat =
-        selectedChatRef.current;
+    // --------------------------------
+    // Typing stop
+    // --------------------------------
 
-      if (
-        !currentChat ||
-        chatId !== currentChat.id
-      ) {
+    const handleTypingStop = ({ chatId, userId }) => {
+      const currentChat = selectedChatRef.current;
+
+      if (!currentChat || chatId !== currentChat.id) {
         return;
       }
 
-      setTypingUsers((prev) =>
-        prev.filter((id) => id !== userId),
-      );
+      setTypingUsers((prev) => prev.filter((id) => id !== userId));
     };
 
-    // SOCKET ERROR
-    const handleSocketError = (
-      socketError,
-    ) => {
-      console.error(
-        "Socket error:",
-        socketError,
-      );
+    // --------------------------------
+    // User online
+    // --------------------------------
+
+    const handleUserOnline = ({ userId }) => {
+      console.log("User online:", userId);
+
+      setUserStatuses((prev) => ({
+        ...prev,
+
+        [userId]: {
+          status: "ONLINE",
+          lastSeen: null,
+        },
+      }));
     };
 
-    socket.on(
-      "new-message",
-      handleNewMessage,
-    );
+    // --------------------------------
+    // User offline
+    // --------------------------------
 
-    socket.on(
-      "typing-start",
-      handleTypingStart,
-    );
+    const handleUserOffline = ({ userId, lastSeen }) => {
+      console.log("User offline:", userId);
 
-    socket.on(
-      "typing-stop",
-      handleTypingStop,
-    );
+      setUserStatuses((prev) => ({
+        ...prev,
 
-    socket.on(
-      "socket-error",
-      handleSocketError,
-    );
+        [userId]: {
+          status: "OFFLINE",
+          lastSeen,
+        },
+      }));
+    };
+
+    // --------------------------------
+    // Socket error
+    // --------------------------------
+
+    const handleSocketError = (socketError) => {
+      console.error("Socket error:", socketError);
+    };
+
+    // --------------------------------
+    // Register listeners
+    // --------------------------------
+
+    socket.on("new-message", handleNewMessage);
+
+    socket.on("typing-start", handleTypingStart);
+
+    socket.on("typing-stop", handleTypingStop);
+
+    socket.on("user-online", handleUserOnline);
+
+    socket.on("user-offline", handleUserOffline);
+
+    socket.on("socket-error", handleSocketError);
+
+    // --------------------------------
+    // Cleanup listeners
+    // --------------------------------
 
     return () => {
-      socket.off(
-        "new-message",
-        handleNewMessage,
-      );
+      socket.off("new-message", handleNewMessage);
 
-      socket.off(
-        "typing-start",
-        handleTypingStart,
-      );
+      socket.off("typing-start", handleTypingStart);
 
-      socket.off(
-        "typing-stop",
-        handleTypingStop,
-      );
+      socket.off("typing-stop", handleTypingStop);
 
-      socket.off(
-        "socket-error",
-        handleSocketError,
-      );
+      socket.off("user-online", handleUserOnline);
+
+      socket.off("user-offline", handleUserOffline);
+
+      socket.off("socket-error", handleSocketError);
     };
   }, [user?.id]);
 
@@ -234,54 +258,30 @@ function Chat() {
     setTypingUsers([]);
 
     const joinChat = () => {
-      console.log(
-        "Joining chat:",
-        chatId,
-      );
+      console.log("Joining chat:", chatId);
 
-      socket.emit(
-        "join-chat",
-        chatId,
-      );
+      socket.emit("join-chat", chatId);
     };
 
     const handleJoinedChat = (data) => {
-      console.log(
-        "Joined chat:",
-        data.chatId,
-      );
+      console.log("Joined chat:", data.chatId);
     };
 
-    socket.on(
-      "joined-chat",
-      handleJoinedChat,
-    );
+    socket.on("joined-chat", handleJoinedChat);
 
     if (socket.connected) {
       joinChat();
     } else {
-      socket.once(
-        "connect",
-        joinChat,
-      );
+      socket.once("connect", joinChat);
     }
 
     return () => {
-      socket.off(
-        "joined-chat",
-        handleJoinedChat,
-      );
+      socket.off("joined-chat", handleJoinedChat);
 
-      socket.off(
-        "connect",
-        joinChat,
-      );
+      socket.off("connect", joinChat);
 
       if (socket.connected) {
-        socket.emit(
-          "leave-chat",
-          chatId,
-        );
+        socket.emit("leave-chat", chatId);
       }
 
       setTypingUsers([]);
@@ -303,34 +303,23 @@ function Chat() {
         setMessagesLoading(true);
         setError("");
 
-        const response =
-          await api.get(
-            `/chats/${selectedChat.id}/messages`,
-            {
-              params: {
-                page: 1,
-                limit: 20,
-              },
-            },
-          );
+        const response = await api.get(`/chats/${selectedChat.id}/messages`, {
+          params: {
+            page: 1,
+            limit: 20,
+          },
+        });
 
-        const receivedMessages =
-          response.data.messages || [];
+        const receivedMessages = response.data.messages || [];
 
-        const sortedMessages = [
-          ...receivedMessages,
-        ].sort(
-          (a, b) =>
-            new Date(a.createdAt) -
-            new Date(b.createdAt),
+        // Ескі → жаңа
+        const sortedMessages = [...receivedMessages].sort(
+          (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         );
 
         setMessages(sortedMessages);
       } catch (error) {
-        setError(
-          error.response?.data?.error ||
-            "Failed to load messages",
-        );
+        setError(error.response?.data?.error || "Failed to load messages");
       } finally {
         setMessagesLoading(false);
       }
@@ -343,9 +332,7 @@ function Chat() {
   // Send message
   // --------------------------------
 
-  const handleSendMessage = async (
-    content,
-  ) => {
+  const handleSendMessage = async (content) => {
     if (!selectedChat) {
       return;
     }
@@ -353,40 +340,64 @@ function Chat() {
     try {
       setError("");
 
-      const response =
-        await api.post(
-          `/chats/${selectedChat.id}/messages`,
-          {
-            content,
-          },
-        );
+      const response = await api.post(`/chats/${selectedChat.id}/messages`, {
+        content,
+      });
 
-      const newMessage =
-        response.data.message ||
-        response.data;
+      const newMessage = response.data.message || response.data;
 
       setMessages((prev) => {
-        const alreadyExists =
-          prev.some(
-            (message) =>
-              message.id ===
-              newMessage.id,
-          );
+        const alreadyExists = prev.some(
+          (message) => message.id === newMessage.id,
+        );
 
         if (alreadyExists) {
           return prev;
         }
 
-        return [
-          ...prev,
-          newMessage,
-        ];
+        return [...prev, newMessage];
       });
     } catch (error) {
-      setError(
-        error.response?.data?.error ||
-          "Failed to send message",
+      setError(error.response?.data?.error || "Failed to send message");
+
+      throw error;
+    }
+  };
+
+  const handleSendFile = async (file) => {
+    if (!selectedChat || !file) {
+      return;
+    }
+
+    try {
+      setError("");
+
+      const formData = new FormData();
+
+      formData.append("file", file);
+
+      const response = await api.post(
+        `/chats/${selectedChat.id}/messages/file`,
+        formData,
       );
+
+      const newMessage = response.data.message || response.data;
+
+      setMessages((prev) => {
+        const alreadyExists = prev.some(
+          (message) => message.id === newMessage.id,
+        );
+
+        if (alreadyExists) {
+          return prev;
+        }
+
+        return [...prev, newMessage];
+      });
+    } catch (error) {
+      console.error("File upload error:", error);
+
+      setError(error.response?.data?.error || "Failed to upload file");
 
       throw error;
     }
@@ -407,10 +418,7 @@ function Chat() {
       return;
     }
 
-    socket.emit(
-      "typing-start",
-      selectedChat.id,
-    );
+    socket.emit("typing-start", selectedChat.id);
   };
 
   // --------------------------------
@@ -428,10 +436,7 @@ function Chat() {
       return;
     }
 
-    socket.emit(
-      "typing-stop",
-      selectedChat.id,
-    );
+    socket.emit("typing-stop", selectedChat.id);
   };
 
   // --------------------------------
@@ -447,11 +452,7 @@ function Chat() {
   // --------------------------------
 
   if (loading) {
-    return (
-      <div className="center-message">
-        Loading chats...
-      </div>
-    );
+    return <div className="center-message">Loading chats...</div>;
   }
 
   // --------------------------------
@@ -466,48 +467,47 @@ function Chat() {
         onSelectChat={setSelectedChat}
         user={user}
         onLogout={handleLogout}
+        userStatuses={userStatuses}
       />
 
       <main className="chat-main">
-        {error && (
-          <div className="chat-error">
-            {error}
-          </div>
-        )}
+        {error && <div className="chat-error">{error}</div>}
 
         {selectedChat ? (
           <>
             <ChatHeader
               chat={selectedChat}
               user={user}
+              userStatuses={userStatuses}
             />
 
             {messagesLoading ? (
-              <div className="center-message">
-                Loading messages...
-              </div>
+              <div className="center-message">Loading messages...</div>
             ) : (
-              <MessageList
-                messages={messages}
-                user={user}
-              />
+              <MessageList messages={messages} user={user} />
             )}
 
             {typingUsers.length > 0 && (
               <div className="typing-indicator">
-                Someone is typing...
+                {typingUsers
+                  .map((typingUserId) => {
+                    const member = selectedChat?.members?.find(
+                      (member) => member.userId === typingUserId,
+                    );
+
+                    return member?.user?.username || "Someone";
+                  })
+                  .join(", ")}{" "}
+                {typingUsers.length === 1 ? "is typing..." : "are typing..."}
               </div>
             )}
 
             <MessageInput
               onSend={handleSendMessage}
+              onSendFile={handleSendFile}
               disabled={messagesLoading}
-              onTypingStart={
-                handleTypingStart
-              }
-              onTypingStop={
-                handleTypingStop
-              }
+              onTypingStart={handleTypingStart}
+              onTypingStop={handleTypingStop}
             />
           </>
         ) : (
@@ -515,10 +515,7 @@ function Chat() {
             <div>
               <h2>Select a chat</h2>
 
-              <p>
-                Choose a conversation
-                from the sidebar.
-              </p>
+              <p>Choose a conversation from the sidebar.</p>
             </div>
           </div>
         )}
