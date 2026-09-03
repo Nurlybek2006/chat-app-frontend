@@ -121,6 +121,14 @@ function Chat() {
 
         return [...prev, message];
       });
+
+      // Басқа user-ден келген message болса,
+      // оны автоматты түрде READ етеміз.
+      if (message.senderId !== user?.id) {
+        api.patch(`/chats/messages/${message.id}/read`).catch((error) => {
+          console.error("Mark message as read error:", error);
+        });
+      }
     };
 
     // --------------------------------
@@ -203,6 +211,48 @@ function Chat() {
       console.error("Socket error:", socketError);
     };
 
+    const handleMessageRead = ({ messageId, chatId, readBy, readAt }) => {
+      const currentChat = selectedChatRef.current;
+
+      if (!currentChat || chatId !== currentChat.id) {
+        return;
+      }
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          message.id === messageId
+            ? {
+                ...message,
+                isRead: true,
+                readAt,
+              }
+            : message,
+        ),
+      );
+    };
+
+    const handleMessagesRead = ({ chatId, messageIds, readBy, readAt }) => {
+      const currentChat = selectedChatRef.current;
+
+      if (!currentChat || chatId !== currentChat.id) {
+        return;
+      }
+
+      const ids = new Set(messageIds || []);
+
+      setMessages((prev) =>
+        prev.map((message) =>
+          ids.has(message.id)
+            ? {
+                ...message,
+                isRead: true,
+                readAt,
+              }
+            : message,
+        ),
+      );
+    };
+
     // --------------------------------
     // Register listeners
     // --------------------------------
@@ -218,6 +268,10 @@ function Chat() {
     socket.on("user-offline", handleUserOffline);
 
     socket.on("socket-error", handleSocketError);
+
+    socket.on("message-read", handleMessageRead);
+
+    socket.on("messages-read", handleMessagesRead);
 
     // --------------------------------
     // Cleanup listeners
@@ -235,6 +289,10 @@ function Chat() {
       socket.off("user-offline", handleUserOffline);
 
       socket.off("socket-error", handleSocketError);
+
+      socket.off("message-read", handleMessageRead);
+
+      socket.off("messages-read", handleMessagesRead);
     };
   }, [user?.id]);
 
@@ -312,12 +370,19 @@ function Chat() {
 
         const receivedMessages = response.data.messages || [];
 
-        // Ескі → жаңа
         const sortedMessages = [...receivedMessages].sort(
           (a, b) => new Date(a.createdAt) - new Date(b.createdAt),
         );
 
         setMessages(sortedMessages);
+
+        // Чат ашылған кезде
+        // барлық unread message-терді оқылған деп белгілейміз.
+        try {
+          await api.patch(`/chats/${selectedChat.id}/read`);
+        } catch (readError) {
+          console.error("Mark chat as read error:", readError);
+        }
       } catch (error) {
         setError(error.response?.data?.error || "Failed to load messages");
       } finally {

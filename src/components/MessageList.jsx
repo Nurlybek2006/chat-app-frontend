@@ -3,6 +3,11 @@ import {
   useRef,
 } from "react";
 
+const apiOrigin = (
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:3000/api"
+).replace(/\/api\/?$/, "");
+
 function MessageList({
   messages,
   user,
@@ -91,7 +96,7 @@ function MessageList({
                   message.fileUrl && (
                     <img
                       className="message-image"
-                      src={`http://localhost:3000${message.fileUrl}`}
+                      src={`${apiOrigin}${message.fileUrl}`}
                       alt={
                         message.fileName ||
                         "image"
@@ -104,7 +109,7 @@ function MessageList({
                   message.fileUrl && (
                     <a
                       className="message-file"
-                      href={`http://localhost:3000${message.fileUrl}`}
+                      href={`${apiOrigin}${message.fileUrl}`}
                       target="_blank"
                       rel="noreferrer"
                     >

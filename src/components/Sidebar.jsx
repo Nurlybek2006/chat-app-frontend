@@ -1,3 +1,5 @@
+import NotificationBell from "./NotificationBell";
+
 function Sidebar({
   chats,
   selectedChat,
@@ -9,6 +11,7 @@ function Sidebar({
   return (
     <aside className="sidebar">
       <div className="sidebar-header">
+        <NotificationBell />
         <div>
           <h2>Chat App</h2>
           <p>@{user?.username}</p>

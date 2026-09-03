@@ -409,3 +409,182 @@ input {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+.sidebar-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.notification-wrapper {
+  position: relative;
+}
+
+.notification-bell {
+  position: relative;
+
+  width: 42px;
+  height: 42px;
+
+  border: none;
+  border-radius: 8px;
+
+  background: #374151;
+
+  cursor: pointer;
+
+  font-size: 18px;
+}
+
+.notification-bell:hover {
+  background: #4b5563;
+}
+
+.notification-count {
+  position: absolute;
+
+  top: -5px;
+  right: -5px;
+
+  min-width: 18px;
+  height: 18px;
+
+  padding: 0 5px;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  border-radius: 999px;
+
+  background: #ef4444;
+  color: white;
+
+  font-size: 11px;
+  font-weight: bold;
+}
+
+.notification-panel {
+  position: absolute;
+
+  top: 50px;
+  left: 0;
+
+  width: 340px;
+  max-height: 450px;
+
+  overflow-y: auto;
+
+  background: #1f2937;
+
+  border: 1px solid #374151;
+  border-radius: 10px;
+
+  box-shadow:
+    0 10px 30px
+    rgba(0, 0, 0, 0.4);
+
+  z-index: 1000;
+}
+
+.notification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+
+  padding: 12px;
+
+  border-bottom:
+    1px solid #374151;
+}
+
+.notification-header button {
+  border: none;
+
+  background: transparent;
+  color: #818cf8;
+
+  cursor: pointer;
+}
+
+.notification-list {
+  display: flex;
+  flex-direction: column;
+}
+
+.notification-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+
+  padding: 12px;
+
+  border-bottom:
+    1px solid #374151;
+}
+
+.notification-item.unread {
+  background: #273449;
+}
+
+.notification-item.read {
+  opacity: 0.7;
+}
+
+.notification-content {
+  min-width: 0;
+}
+
+.notification-content strong {
+  display: block;
+
+  margin-bottom: 4px;
+
+  color: white;
+}
+
+.notification-content p {
+  margin: 0 0 5px;
+
+  color: #d1d5db;
+
+  font-size: 13px;
+}
+
+.notification-content small {
+  color: #9ca3af;
+
+  font-size: 11px;
+}
+
+.notification-actions {
+  display: flex;
+  gap: 5px;
+
+  align-items: flex-start;
+}
+
+.notification-actions button {
+  width: 28px;
+  height: 28px;
+
+  border: none;
+  border-radius: 6px;
+
+  background: #374151;
+  color: white;
+
+  cursor: pointer;
+}
+
+.notification-actions button:hover {
+  background: #4b5563;
+}
+
+.notification-empty {
+  padding: 25px;
+
+  text-align: center;
+
+  color: #9ca3af;
+}
