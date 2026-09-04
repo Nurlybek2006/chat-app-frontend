@@ -1,8 +1,4 @@
-import {
-  useEffect,
-  useRef,
-  useState,
-} from "react";
+import { useEffect, useRef, useState } from "react";
 
 function MessageInput({
   onSend,
@@ -10,21 +6,18 @@ function MessageInput({
   disabled,
   onTypingStart,
   onTypingStop,
+  replyTo,
+  onCancelReply,
 }) {
-  const [content, setContent] =
-    useState("");
+  const [content, setContent] = useState("");
 
-  const [sending, setSending] =
-    useState(false);
+  const [sending, setSending] = useState(false);
 
-  const typingTimeoutRef =
-    useRef(null);
+  const typingTimeoutRef = useRef(null);
 
-  const isTypingRef =
-    useRef(false);
+  const isTypingRef = useRef(false);
 
-  const fileInputRef =
-    useRef(null);
+  const fileInputRef = useRef(null);
 
   const handleChange = (event) => {
     const value = event.target.value;
@@ -33,9 +26,7 @@ function MessageInput({
 
     if (!value.trim()) {
       if (typingTimeoutRef.current) {
-        clearTimeout(
-          typingTimeoutRef.current,
-        );
+        clearTimeout(typingTimeoutRef.current);
       }
 
       if (isTypingRef.current) {
@@ -54,35 +45,24 @@ function MessageInput({
     }
 
     if (typingTimeoutRef.current) {
-      clearTimeout(
-        typingTimeoutRef.current,
-      );
+      clearTimeout(typingTimeoutRef.current);
     }
 
-    typingTimeoutRef.current =
-      setTimeout(() => {
-        if (isTypingRef.current) {
-          isTypingRef.current =
-            false;
+    typingTimeoutRef.current = setTimeout(() => {
+      if (isTypingRef.current) {
+        isTypingRef.current = false;
 
-          onTypingStop?.();
-        }
-      }, 1200);
+        onTypingStop?.();
+      }
+    }, 1200);
   };
 
-  const handleSubmit = async (
-    event,
-  ) => {
+  const handleSubmit = async (event) => {
     event.preventDefault();
 
-    const trimmedContent =
-      content.trim();
+    const trimmedContent = content.trim();
 
-    if (
-      !trimmedContent ||
-      sending ||
-      disabled
-    ) {
+    if (!trimmedContent || sending || disabled) {
       return;
     }
 
@@ -90,9 +70,7 @@ function MessageInput({
       setSending(true);
 
       if (typingTimeoutRef.current) {
-        clearTimeout(
-          typingTimeoutRef.current,
-        );
+        clearTimeout(typingTimeoutRef.current);
       }
 
       if (isTypingRef.current) {
@@ -117,11 +95,8 @@ function MessageInput({
     fileInputRef.current?.click();
   };
 
-  const handleFileChange = async (
-    event,
-  ) => {
-    const file =
-      event.target.files?.[0];
+  const handleFileChange = async (event) => {
+    const file = event.target.files?.[0];
 
     if (!file) {
       return;
@@ -141,18 +116,26 @@ function MessageInput({
   useEffect(() => {
     return () => {
       if (typingTimeoutRef.current) {
-        clearTimeout(
-          typingTimeoutRef.current,
-        );
+        clearTimeout(typingTimeoutRef.current);
       }
     };
   }, []);
 
   return (
-    <form
-      className="message-input-container"
-      onSubmit={handleSubmit}
-    >
+    <form className="message-input-container" onSubmit={handleSubmit}>
+      {replyTo && (
+        <div className="reply-preview">
+          <div>
+            <strong>Replying to {replyTo.sender?.username || "User"}</strong>
+
+            <span>{replyTo.content}</span>
+          </div>
+
+          <button type="button" onClick={onCancelReply}>
+            ✕
+          </button>
+        </div>
+      )}
       <input
         ref={fileInputRef}
         type="file"
@@ -163,12 +146,8 @@ function MessageInput({
       <button
         type="button"
         className="file-button"
-        onClick={
-          handleFileButtonClick
-        }
-        disabled={
-          disabled || sending
-        }
+        onClick={handleFileButtonClick}
+        disabled={disabled || sending}
       >
         📎
       </button>
@@ -178,22 +157,11 @@ function MessageInput({
         placeholder="Type a message..."
         value={content}
         onChange={handleChange}
-        disabled={
-          disabled || sending
-        }
+        disabled={disabled || sending}
       />
 
-      <button
-        type="submit"
-        disabled={
-          disabled ||
-          sending ||
-          !content.trim()
-        }
-      >
-        {sending
-          ? "Sending..."
-          : "Send"}
+      <button type="submit" disabled={disabled || sending || !content.trim()}>
+        {sending ? "Sending..." : "Send"}
       </button>
     </form>
   );

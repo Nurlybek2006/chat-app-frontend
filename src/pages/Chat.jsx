@@ -27,6 +27,8 @@ function Chat() {
 
   const [userStatuses, setUserStatuses] = useState({});
 
+  const [replyTo, setReplyTo] = useState(null);
+
   const selectedChatRef = useRef(null);
 
   // --------------------------------
@@ -35,6 +37,8 @@ function Chat() {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
+
+    setReplyTo(null);
   }, [selectedChat]);
 
   // --------------------------------
@@ -253,6 +257,61 @@ function Chat() {
       );
     };
 
+    const handleChatAdded = async ({ chatId }) => {
+      if (!chatId) {
+        return;
+      }
+
+      try {
+        const response = await api.get(`/chats/${chatId}`);
+
+        const chat = response.data.chat || response.data;
+
+        if (!chat?.id) {
+          return;
+        }
+
+        setChats((prev) => {
+          const exists = prev.some((item) => item.id === chat.id);
+
+          if (exists) {
+            return prev.map((item) =>
+              item.id === chat.id
+                ? {
+                    ...item,
+                    ...chat,
+                  }
+                : item,
+            );
+          }
+
+          return [chat, ...prev];
+        });
+
+        setUserStatuses((prev) => {
+          const next = { ...prev };
+
+          chat.members?.forEach((member) => {
+            if (!member.user?.id) {
+              return;
+            }
+
+            next[member.user.id] = {
+              status: member.user.status || "OFFLINE",
+
+              lastSeen: member.user.lastSeen || null,
+            };
+          });
+
+          return next;
+        });
+
+        console.log("Chat added:", chat.id);
+      } catch (error) {
+        console.error("Failed to load added chat:", error);
+      }
+    };
+
     // --------------------------------
     // Register listeners
     // --------------------------------
@@ -272,6 +331,8 @@ function Chat() {
     socket.on("message-read", handleMessageRead);
 
     socket.on("messages-read", handleMessagesRead);
+
+    socket.on("chat-added", handleChatAdded);
 
     // --------------------------------
     // Cleanup listeners
@@ -293,6 +354,8 @@ function Chat() {
       socket.off("message-read", handleMessageRead);
 
       socket.off("messages-read", handleMessagesRead);
+
+      socket.off("chat-added", handleChatAdded);
     };
   }, [user?.id]);
 
@@ -405,9 +468,18 @@ function Chat() {
     try {
       setError("");
 
-      const response = await api.post(`/chats/${selectedChat.id}/messages`, {
+      const body = {
         content,
-      });
+      };
+
+      if (replyTo?.id) {
+        body.replyToId = replyTo.id;
+      }
+
+      const response = await api.post(
+        `/chats/${selectedChat.id}/messages`,
+        body,
+      );
 
       const newMessage = response.data.message || response.data;
 
@@ -422,6 +494,8 @@ function Chat() {
 
         return [...prev, newMessage];
       });
+
+      setReplyTo(null);
     } catch (error) {
       setError(error.response?.data?.error || "Failed to send message");
 
@@ -466,6 +540,47 @@ function Chat() {
 
       throw error;
     }
+  };
+
+  // --------------------------------
+  // Chat created
+  // --------------------------------
+
+  const handleChatCreated = (chat) => {
+    if (!chat?.id) {
+      return;
+    }
+
+    setChats((prev) => {
+      const exists = prev.some((item) => item.id === chat.id);
+
+      if (exists) {
+        return prev;
+      }
+
+      return [chat, ...prev];
+    });
+
+    // Жаңа chat ішіндегі user status-тарды да сақтаймыз
+    setUserStatuses((prev) => {
+      const next = { ...prev };
+
+      chat.members?.forEach((member) => {
+        if (!member.user?.id) {
+          return;
+        }
+
+        next[member.user.id] = {
+          status: member.user.status || "OFFLINE",
+          lastSeen: member.user.lastSeen || null,
+        };
+      });
+
+      return next;
+    });
+
+    setSelectedChat(chat);
+    setReplyTo(null);
   };
 
   // --------------------------------
@@ -533,6 +648,7 @@ function Chat() {
         user={user}
         onLogout={handleLogout}
         userStatuses={userStatuses}
+        onChatCreated={handleChatCreated}
       />
 
       <main className="chat-main">
@@ -549,7 +665,11 @@ function Chat() {
             {messagesLoading ? (
               <div className="center-message">Loading messages...</div>
             ) : (
-              <MessageList messages={messages} user={user} />
+              <MessageList
+                messages={messages}
+                user={user}
+                onReply={setReplyTo}
+              />
             )}
 
             {typingUsers.length > 0 && (
@@ -573,6 +693,8 @@ function Chat() {
               disabled={messagesLoading}
               onTypingStart={handleTypingStart}
               onTypingStop={handleTypingStop}
+              replyTo={replyTo}
+              onCancelReply={() => setReplyTo(null)}
             />
           </>
         ) : (
