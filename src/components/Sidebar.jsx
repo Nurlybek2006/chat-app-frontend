@@ -11,6 +11,7 @@ function Sidebar({
   onLogout,
   userStatuses,
   onChatCreated,
+  onOpenProfile,
 }) {
   const [showNewChat, setShowNewChat] = useState(false);
 
@@ -163,6 +164,13 @@ function Sidebar({
         </div>
 
         <div className="sidebar-header-actions">
+          <button
+            type="button"
+            className="profile-button"
+            onClick={onOpenProfile}
+          >
+            👤
+          </button>
           <NotificationBell />
 
           <button className="logout-button" onClick={onLogout}>

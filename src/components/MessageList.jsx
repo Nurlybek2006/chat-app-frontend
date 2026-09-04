@@ -1,6 +1,6 @@
 import { useEffect, useRef } from "react";
 
-function MessageList({ messages, user, onReply }) {
+function MessageList({ messages, user, onReply, onEdit, onDelete }) {
   const bottomRef = useRef(null);
 
   useEffect(() => {
@@ -63,6 +63,18 @@ function MessageList({ messages, user, onReply }) {
                 >
                   📎 {message.fileName || "Download file"}
                 </a>
+              )}
+
+              {isMine && (
+                <div className="message-actions">
+                  <button type="button" onClick={() => onEdit?.(message)}>
+                    Edit
+                  </button>
+
+                  <button type="button" onClick={() => onDelete?.(message)}>
+                    Delete
+                  </button>
+                </div>
               )}
 
               <div className="message-meta">

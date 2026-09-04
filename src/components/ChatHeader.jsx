@@ -1,8 +1,4 @@
-function ChatHeader({
-  chat,
-  user,
-  userStatuses,
-}) {
+function ChatHeader({ chat, user, userStatuses, onOpenGroupSettings, onBack }) {
   if (!chat) {
     return null;
   }
@@ -20,25 +16,17 @@ function ChatHeader({
   if (chat.isGroup) {
     statusText = `${chat.members?.length || 0} members`;
   } else if (otherMember) {
-    const liveStatus =
-      userStatuses?.[otherMember.userId];
+    const liveStatus = userStatuses?.[otherMember.userId];
 
-    const status =
-      liveStatus?.status ||
-      otherMember.user?.status ||
-      "OFFLINE";
+    const status = liveStatus?.status || otherMember.user?.status || "OFFLINE";
 
     if (status === "ONLINE") {
       statusText = "ONLINE";
     } else {
-      const lastSeen =
-        liveStatus?.lastSeen ||
-        otherMember.user?.lastSeen;
+      const lastSeen = liveStatus?.lastSeen || otherMember.user?.lastSeen;
 
       if (lastSeen) {
-        statusText = `Last seen ${new Date(
-          lastSeen,
-        ).toLocaleTimeString([], {
+        statusText = `Last seen ${new Date(lastSeen).toLocaleTimeString([], {
           hour: "2-digit",
           minute: "2-digit",
         })}`;
@@ -50,6 +38,9 @@ function ChatHeader({
 
   return (
     <header className="chat-header">
+      <button type="button" className="mobile-back-button" onClick={onBack}>
+        ←
+      </button>
       <div className="chat-header-avatar-wrapper">
         <div className="chat-header-avatar">
           {chatName?.charAt(0).toUpperCase()}
@@ -58,9 +49,7 @@ function ChatHeader({
         {!chat.isGroup && (
           <span
             className={`status-dot ${
-              statusText === "ONLINE"
-                ? "online"
-                : "offline"
+              statusText === "ONLINE" ? "online" : "offline"
             }`}
           />
         )}
@@ -71,6 +60,16 @@ function ChatHeader({
 
         <span>{statusText}</span>
       </div>
+
+      {chat.isGroup && (
+        <button
+          type="button"
+          className="group-settings-button"
+          onClick={onOpenGroupSettings}
+        >
+          ⚙
+        </button>
+      )}
     </header>
   );
 }
