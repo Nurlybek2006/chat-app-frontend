@@ -1,5 +1,4 @@
-import { useEffect, useState } from "react";
-
+import { useState } from "react";
 import api from "../api/api";
 
 function ProfileSettings({ user, onClose, onUpdated }) {
@@ -11,10 +10,6 @@ function ProfileSettings({ user, onClose, onUpdated }) {
 
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    setUsername(user?.username || "");
-    setAvatar(user?.avatar || "");
-  }, [user]);
 
   const handleSave = async () => {
     const trimmedUsername = username.trim();

@@ -35,8 +35,6 @@ function Chat() {
 
   const [showProfileSettings, setShowProfileSettings] = useState(false);
 
-  const [editingMessage, setEditingMessage] = useState(null);
-
   const selectedChatRef = useRef(null);
 
   // --------------------------------
@@ -45,9 +43,6 @@ function Chat() {
 
   useEffect(() => {
     selectedChatRef.current = selectedChat;
-
-    setReplyTo(null);
-    setShowGroupSettings(false);
   }, [selectedChat]);
 
   // --------------------------------
@@ -580,8 +575,6 @@ function Chat() {
 
     const chatId = selectedChat.id;
 
-    setTypingUsers([]);
-
     const joinChat = () => {
       socket.emit("join-chat", chatId);
     };
@@ -606,8 +599,6 @@ function Chat() {
       if (socket.connected) {
         socket.emit("leave-chat", chatId);
       }
-
-      setTypingUsers([]);
     };
   }, [selectedChat]);
 
@@ -617,7 +608,6 @@ function Chat() {
 
   useEffect(() => {
     if (!selectedChat) {
-      setMessages([]);
       return;
     }
 
@@ -860,6 +850,19 @@ function Chat() {
   };
 
   // --------------------------------
+  // Select chat
+  // --------------------------------
+
+  const handleSelectChat = (chat) => {
+    setReplyTo(null);
+    setShowGroupSettings(false);
+    setTypingUsers([]);
+    setMessages([]);
+
+    setSelectedChat(chat);
+  };
+
+  // --------------------------------
   // Typing start
   // --------------------------------
 
@@ -920,7 +923,7 @@ function Chat() {
       <Sidebar
         chats={chats}
         selectedChat={selectedChat}
-        onSelectChat={setSelectedChat}
+        onSelectChat={handleSelectChat}
         user={user}
         onLogout={handleLogout}
         userStatuses={userStatuses}
@@ -938,7 +941,7 @@ function Chat() {
               user={user}
               userStatuses={userStatuses}
               onOpenGroupSettings={() => setShowGroupSettings(true)}
-              onBack={() => setSelectedChat(null)}
+              onBack={() => handleSelectChat(null)}
             />
 
             {messagesLoading ? (
@@ -1001,7 +1004,7 @@ function Chat() {
         <ProfileSettings
           user={user}
           onClose={() => setShowProfileSettings(false)}
-          onUpdated={(updatedUser) => {
+          onUpdated={() => {
             window.location.reload();
           }}
         />
